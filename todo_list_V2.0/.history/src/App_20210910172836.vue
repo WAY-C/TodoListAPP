@@ -1,0 +1,167 @@
+<template>
+  <div id="root">
+    <div class="todo-container">
+      <div class="todo-wrap">
+        <!-- 此处添加一个自定义事件addNewTodo，后者是回调函数addNewTodo，二者可以同名 -->
+        <TodoHeader @addNewTodo="addNewTodo" />
+        <TodoList :todos="todos" />
+        <TodoFooter
+          :todos="todos"
+          :checkAllTodo="checkAllTodo"
+          :clearAllTodo="clearAllTodo"
+        />
+        <h4>&emsp;使用说明：</h4>
+        <ul>
+          <li>在文本框中输入文本来添加一个todo</li>
+          <li>勾选或取消勾选todo前的方框来切换“已完成”、“未完成”</li>
+          <li>单击todo后的“删除”按钮来删除一个todo</li>
+          <li>
+            单击todo后的“编辑”按钮来编辑当前todo，<br />单击修改框外任意位置或单击回车提交
+          </li>
+          <li>单击全选方框来选择或取消选择全部todo</li>
+          <li>单击“清除已完成任务”来删除已完成（已选中）的todo</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { nanoid } from "nanoid";
+import TodoHeader from "./components/TodoHeader";
+import TodoList from "./components/TodoList";
+import TodoFooter from "./components/TodoFooter";
+
+export default {
+  name: "App",
+  components: { TodoHeader, TodoList, TodoFooter },
+  data() {
+    return {
+      todos: JSON.parse(localStorage.getItem("todos")) || [
+        {
+          id: nanoid(),
+          title: "拥有好心情",
+          done: false,
+          isEdit: false,
+        },
+      ],
+    };
+  },
+  methods: {
+    // 自定义事件addNewTodo的回调函数，添加一个todo
+    addNewTodo(newTodoObj) {
+      this.todos.unshift(newTodoObj);
+    },
+    // 勾选与取消勾选修改todo的done属性值
+    checkTodo(id) {
+      this.todos.forEach((todo) => {
+        if (todo.id === id) {
+          todo.done = !todo.done;
+        }
+      });
+    },
+    // 删除一个todo
+    deleteTodo(id) {
+      this.todos = this.todos.filter((todo) => todo.id !== id);
+    },
+    // 全选或全不选
+    checkAllTodo(done) {
+      this.todos.forEach((todo) => (todo.done = done));
+    },
+    // 点击footer中清除已选事件时删除相应todo
+    clearAllTodo() {
+      this.todos = this.todos.filter((todo) => !todo.done);
+    },
+    // 点击Item上编辑按钮时改变todo的isEdit属性
+    editTodo(todoId) {
+      this.todos.forEach((todo) => {
+        if (todo.id === todoId) {
+          todo.isEdit = true;
+        }
+      });
+    },
+    // 编辑完成时
+    updateTodo(todoId, title) {
+      this.todos.forEach((todo) => {
+        if (todo.id === todoId) {
+          todo.title = title;
+          todo.isEdit = false;
+        }
+      });
+    },
+  },
+  watch: {
+    todos: {
+      deep: true,
+      handler(value) {
+        localStorage.setItem("todos", JSON.stringify(value));
+      },
+    },
+  },
+  mounted() {
+    this.$bus.$on("checkTodo", this.checkTodo);
+    this.$bus.$on("deleteTodo", this.deleteTodo);
+    this.$bus.$on("editTodo", this.editTodo);
+    this.$bus.$on("updateTodo", this.updateTodo);
+  },
+  beforeDestroy() {
+    this.$bus.$off("checkTodo");
+    this.$bus.$off("deleteTodo");
+    this.$bus.$off("editTodo");
+    this.$bus.$off("updateTodo");
+  },
+};
+</script>
+
+<style>
+/*base*/
+body {
+  background: #fff;
+}
+
+.btn {
+  display: inline-block;
+  padding: 4px 12px;
+  margin-bottom: 0;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.btn-danger {
+  color: #fff;
+  background-color: #da4f49;
+  border: 1px solid #bd362f;
+}
+
+.btn-edit {
+  color: #fff;
+  background-color: skyblue;
+  border: 1px solid rgb(0, 77, 107);
+  margin-right: 5px;
+}
+
+.btn-danger:hover {
+  color: #fff;
+  background-color: #bd362f;
+}
+
+.btn:focus {
+  outline: none;
+}
+
+.todo-container {
+  width: 600px;
+  margin: 0 auto;
+}
+.todo-container .todo-wrap {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+</style>
